@@ -8,7 +8,6 @@
 #include <fstream>
 #include <ctime>
 #include <string>
-#include "escrow.h"
 
 std::vector<Message *> *Message::create_messages(char *buf)
 {

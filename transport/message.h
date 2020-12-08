@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "array.h"
 #include <mutex>
+#include "../system/escrow.h"
 
 class ycsb_request;
 class LogRecord;

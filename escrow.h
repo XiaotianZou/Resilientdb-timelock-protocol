@@ -1,12 +1,11 @@
-#include<unordered_map>
+#include<unordered_set>
 #include<cstring>
-#include<worker.h>
 #include<ctime>
 
 class Escrow {
 private:
     uint64_t id;
-    unordered_set<WorkerThread> pList;
+    unordered_set<int> pList;
     time_t start;
     time_t duration;
     uint64_t holderId;
@@ -14,18 +13,18 @@ private:
     uint64_t objId;
     int size;
 public:
-    Escrow(uint64_t id, unordered_set<WorkerThread> pList, time_t start, time_t duration, uint64_t holderId, int size, uint64_t objId, uint64_t targetId) {
+    Escrow(uint64_t id, unordered_set<int> pList, time_t start, time_t duration, uint64_t holderId, int size, uint64_t objId, uint64_t targetId) {
         this->id = id;
         this->pList = pList;
         this->start = start;
         this->duration = duration;
-        this->holderId;
+        this->holderId = holderId;
         this->size = size;
         this->objId = objId;
         this->targetId = targetId;
     }
 
-    bool checkInPlist(WokerThread wt) {
+    bool checkInPlist(int wt) {
         return pList.count(wt);
     }
 
@@ -49,4 +48,4 @@ public:
         return this->targetId;
     }
 
-}
+};
