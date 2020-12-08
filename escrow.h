@@ -13,6 +13,10 @@ private:
     uint64_t objId;
     int size;
 public:
+    Escrow() {
+        
+    }
+
     Escrow(uint64_t id, unordered_set<int> pList, time_t start, time_t duration, uint64_t holderId, int size, uint64_t objId, uint64_t targetId) {
         this->id = id;
         this->pList = pList;
