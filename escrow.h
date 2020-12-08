@@ -5,27 +5,31 @@
 
 class Escrow {
 private:
-    string id;
+    uint64_t id;
     unordered_set<WorkerThread> pList;
     time_t start;
     time_t duration;
-    string holderId;
+    uint64_t holderId;
+    uint64_t targetId;
+    uint64_t objId;
     int size;
 public:
-    Escrow(string id, unordered_set<WorkerThread> pList, time_t start, time_t duration, string holderId, int size) {
+    Escrow(uint64_t id, unordered_set<WorkerThread> pList, time_t start, time_t duration, uint64_t holderId, int size, uint64_t objId, uint64_t targetId) {
         this->id = id;
         this->pList = pList;
         this->start = start;
         this->duration = duration;
         this->holderId;
         this->size = size;
+        this->objId = objId;
+        this->targetId = targetId;
     }
 
     bool checkInPlist(WokerThread wt) {
         return pList.count(wt);
     }
 
-    string getHolderId() {
+    uint64_t getHolderId() {
         return this->holderId;
     }
 
@@ -39,6 +43,10 @@ public:
 
     int getSize() {
         return this->size;
+    }
+
+    int getTargetId() {
+        return this->targetId;
     }
 
 }

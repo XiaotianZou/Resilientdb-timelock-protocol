@@ -34,19 +34,19 @@ RC WorkerThread::process_client_batch(Message *msg)
     ClientQueryBatch *clbtch = (ClientQueryBatch *)msg;
 
     // Authenticate the client signature.
-    validate_msg(clbtch);
+    // validate_msg(clbtch);
 
-#if VIEW_CHANGES
-    // If message forwarded to the non-primary.
-    if (g_node_id != get_current_view(get_thd_id()))
-    {
-        client_query_check(clbtch);
-        return RCOK;
-    }
+// #if VIEW_CHANGES
+//     // If message forwarded to the non-primary.
+//     if (g_node_id != get_current_view(get_thd_id()))
+//     {
+//         client_query_check(clbtch);
+//         return RCOK;
+//     }
 
-    // Partial failure of Primary 0.
-    fail_primary(msg, 9);
-#endif
+//     // Partial failure of Primary 0.
+//     fail_primary(msg, 9);
+// #endif
 
     // Initialize all transaction mangers and Send BatchRequests message.
     create_and_send_batchreq(clbtch, clbtch->txn_id);
@@ -82,10 +82,10 @@ RC WorkerThread::process_batch(Message *msg)
     // Check if the message is valid.
     validate_msg(breq);
 
-#if VIEW_CHANGES
-    // Store the batch as it could be needed during view changes.
-    store_batch_msg(breq);
-#endif
+// #if VIEW_CHANGES
+//     // Store the batch as it could be needed during view changes.
+//     store_batch_msg(breq);
+// #endif
 
     // Allocate transaction managers for all the transactions in the batch.
     set_txn_man_fields(breq, 0);
