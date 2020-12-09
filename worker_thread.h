@@ -4,6 +4,7 @@
 #include "global.h"
 #include "message.h"
 #include "crypto.h"
+#include <unordered_map>
 
 class Workload;
 class Message;
@@ -37,6 +38,8 @@ public:
     void send_checkpoints(uint64_t txn_id);
     RC process_pbft_chkpt_msg(Message *msg);
     Escrow escrow;
+    unordered_map<int, int> assets;
+    
 #if BANKING_SMART_CONTRACT
     void init_txn_man(BankingSmartContractMessage *bscm);
 #else
