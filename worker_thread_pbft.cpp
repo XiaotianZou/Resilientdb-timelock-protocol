@@ -18,9 +18,9 @@
 /**
  * Processes an incoming client batch and sends a Pre-prepare message to al replicas.
  *
- * This function assumes that a client sends a batch of transactions and
- * for each transaction in the batch, a separate transaction manager is created.
- * Next, this batch is forwarded to all the replicas as a BatchRequests Message,
+ * This function assumes that a client sends a batch of transactions and 
+ * for each transaction in the batch, a separate transaction manager is created. 
+ * Next, this batch is forwarded to all the replicas as a BatchRequests Message, 
  * which corresponds to the Pre-Prepare stage in the PBFT protocol.
  *
  * @param msg Batch of Transactions of type CientQueryBatch from the client.
@@ -34,20 +34,9 @@ RC WorkerThread::process_client_batch(Message *msg)
     ClientQueryBatch *clbtch = (ClientQueryBatch *)msg;
 
     // Authenticate the client signature.
-    // validate_msg(clbtch);
+    validate_msg(clbtch);
 
-// #if VIEW_CHANGES
-//     // If message forwarded to the non-primary.
-//     if (g_node_id != get_current_view(get_thd_id()))
-//     {
-//         client_query_check(clbtch);
-//         return RCOK;
-//     }
-
-//     // Partial failure of Primary 0.
-//     fail_primary(msg, 9);
-// #endif
-
+    
     // Initialize all transaction mangers and Send BatchRequests message.
     create_and_send_batchreq(clbtch, clbtch->txn_id);
 
@@ -58,10 +47,10 @@ RC WorkerThread::process_client_batch(Message *msg)
  * Process incoming BatchRequests message from the Primary.
  *
  * This function is used by the non-primary or backup replicas to process an incoming
- * BatchRequests message sent by the primary replica. This processing would require
- * sending messages of type PBFTPrepMessage, which correspond to the Prepare phase of
- * the PBFT protocol. Due to network delays, it is possible that a repica may have
- * received some messages of type PBFTPrepMessage and PBFTCommitMessage, prior to
+ * BatchRequests message sent by the primary replica. This processing would require 
+ * sending messages of type PBFTPrepMessage, which correspond to the Prepare phase of 
+ * the PBFT protocol. Due to network delays, it is possible that a repica may have 
+ * received some messages of type PBFTPrepMessage and PBFTCommitMessage, prior to 
  * receiving this BatchRequests message.
  *
  * @param msg Batch of Transactions of type BatchRequests from the primary.
@@ -82,10 +71,10 @@ RC WorkerThread::process_batch(Message *msg)
     // Check if the message is valid.
     validate_msg(breq);
 
-// #if VIEW_CHANGES
-//     // Store the batch as it could be needed during view changes.
-//     store_batch_msg(breq);
-// #endif
+#if VIEW_CHANGES
+    // Store the batch as it could be needed during view changes.
+    store_batch_msg(breq);
+#endif
 
     // Allocate transaction managers for all the transactions in the batch.
     set_txn_man_fields(breq, 0);
@@ -186,8 +175,8 @@ RC WorkerThread::process_batch(Message *msg)
 /**
  * Processes incoming Prepare message.
  *
- * This functions precessing incoming messages of type PBFTPrepMessage. If a replica
- * received 2f identical Prepare messages from distinct replicas, then it creates
+ * This functions precessing incoming messages of type PBFTPrepMessage. If a replica 
+ * received 2f identical Prepare messages from distinct replicas, then it creates 
  * and sends a PBFTCommitMessage to all the other replicas.
  *
  * @param msg Prepare message of type PBFTPrepMessage from a replica.
@@ -199,7 +188,7 @@ RC WorkerThread::process_pbft_prep_msg(Message *msg)
     //fflush(stdout);
 
     // Start the counter for prepare phase.
-    if (txn_man->prep_rsp_cnt == 2 * g_min_invalid_nodes)
+    if (txn_man->prep_rsp_cnt == g_node_cnt - 1)
     {
         txn_man->txn_stats.time_start_prepare = get_sys_clock();
     }
@@ -224,8 +213,8 @@ RC WorkerThread::process_pbft_prep_msg(Message *msg)
 /**
  * Checks if the incoming PBFTCommitMessage can be accepted.
  *
- * This functions checks if the hash and view of the commit message matches that of
- * the Pre-Prepare message. Once 2f+1 messages are received it returns a true and
+ * This functions checks if the hash and view of the commit message matches that of 
+ * the Pre-Prepare message. Once 2f+1 messages are received it returns a true and 
  * sets the `is_committed` flag for furtue identification.
  *
  * @param msg PBFTCommitMessage.
@@ -275,8 +264,8 @@ bool WorkerThread::committed_local(PBFTCommitMessage *msg)
 /**
  * Processes incoming Commit message.
  *
- * This functions precessing incoming messages of type PBFTCommitMessage. If a replica
- * received 2f+1 identical Commit messages from distinct replicas, then it asks the
+ * This functions precessing incoming messages of type PBFTCommitMessage. If a replica 
+ * received 2f+1 identical Commit messages from distinct replicas, then it asks the 
  * execute-thread to execute all the transactions in this batch.
  *
  * @param msg Commit message of type PBFTCommitMessage from a replica.
@@ -287,7 +276,7 @@ RC WorkerThread::process_pbft_commit_msg(Message *msg)
     //cout << "PBFTCommitMessage: TID " << msg->txn_id << " FROM: " << msg->return_node_id << "\n";
     //fflush(stdout);
 
-    if (txn_man->commit_rsp_cnt == 2 * g_min_invalid_nodes + 1)
+    if (txn_man->commit_rsp_cnt == g_node_cnt - 1)
     {
         txn_man->txn_stats.time_start_commit = get_sys_clock();
     }
