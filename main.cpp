@@ -243,10 +243,6 @@ int main(int argc, char *argv[])
     input_thds = new InputThread[rthd_cnt];
     output_thds = new OutputThread[sthd_cnt];
 
-    // 初始化worker_threads中的物品
-    for (int i = 0; i < wthd_cnt; ++i) {
-        worker_thd[i].assets[i] = 100;
-    }
 
     endtime = get_server_clock();
     printf("Initialization Time = %ld\n", endtime - starttime);
@@ -272,6 +268,11 @@ int main(int argc, char *argv[])
     worker_thds[ii].init(id, g_node_id, m_wl);
     pthread_create(&p_thds[id++], &attr, run_thread, (void *)&worker_thds[ii]);
     pthread_setname_np(p_thds[id - 1], "s_worker");
+
+    // 初始化worker_threads中的物品
+    for (uint64_t i = 0; i < wthd_cnt; ++i) {
+        worker_thds[i].assets[i] = 100;
+    }
 
     for (uint64_t j = 0; j < rthd_cnt; j++)
     {
