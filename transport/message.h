@@ -45,9 +45,10 @@ public:
     vector<uint64_t> dest;
 
     // New things added for the timelock protocol
-    vector<uint64_t> pList;
+    unordered_set<uint64_t> pList;
     uint64_t voter = -1;
-    vector<Escrow> escrows;
+    Escrow escrow1;
+    Escrow escrow2;
     
 
 
