@@ -14,7 +14,10 @@
 #include "message.h"
 #include "timer.h"
 #include "chain.h"
+#include "escrew.h"
 
+
+int escrow_num = 11;
 /**
  * Processes an incoming client batch and sends a Pre-prepare message to al replicas.
  *
@@ -28,15 +31,25 @@
  */
 RC WorkerThread::process_client_batch(Message *msg)
 {
-    //printf("ClientQueryBatch: %ld, THD: %ld :: CL: %ld :: RQ: %ld\n",msg->txn_id, get_thd_id(), msg->return_node_id, clbtch->cqrySet[0]->requests[0]->key);
+    // printf("ClientQueryBatch: %ld, THD: %ld :: CL: %ld :: RQ: %ld\n",msg->txn_id, get_thd_id(), msg->return_node_id, clbtch->cqrySet[0]->requests[0]->key);
     //fflush(stdout);
+
+    //这里相当于是clearing phase,实例化msg里面的escrow,并广播给所有replica.
+    msg->escrow1.id=txn_man->get_txn_id();
+    for(int i=1;i<g_node_cnt;i++){
+        msg->escrow1.pList.insert(i);
+    }
+    msg->escrow2.id=txn_man->get_txn_id();
+    for(int i=1;i<g_node_cnt;i++){
+        msg->escrow2.pList.insert(i);
+    }
+    //增加start time and duration
 
     ClientQueryBatch *clbtch = (ClientQueryBatch *)msg;
 
     // Authenticate the client signature.
     validate_msg(clbtch);
 
-    
     // Initialize all transaction mangers and Send BatchRequests message.
     create_and_send_batchreq(clbtch, clbtch->txn_id);
 
@@ -56,10 +69,33 @@ RC WorkerThread::process_client_batch(Message *msg)
  * @param msg Batch of Transactions of type BatchRequests from the primary.
  * @return RC
  */
+uint64_t getNext(uint64_t id) {
+    if (id < g_thread_cnt - 1) {
+        return id + 1;
+    }
+    return 2;
+}
+
+uint64_t getLast(uint64_t id) {
+    if (id > 1) {
+        return id - 1;
+    }
+    return g_thread_cnt - 1;
+}
+
+
 RC WorkerThread::process_batch(Message *msg)
 {
     uint64_t cntime = get_sys_clock();
 
+    //escrew phase
+    if (msg->escrow1.pList.count(get_node_id())){
+        time_t randomTime;
+        this->escrow = Escrow(txn_man->get_txn_id(), pList, randomTime, randomTime, this->_thd_id, 10, this->_thd_id, getNext(this->_thd_id));
+    }
+    msg->escrow1 = Escrow(txn_man->get_txn_id(), pList, randomTime, randomTime, this->_thd_id, 10, this->_thd_id, getNext(this->_thd_id));
+    msg->escrow2 = Escrow(txn_man->get_txn_id(), pList, randomTime, randomTime, this->_thd_id, 1, this->_thd_id, getNext(getNext(this->_thd_id)));
+    this->assets[msg->escrow1.objId] -= 11;
     BatchRequests *breq = (BatchRequests *)msg;
 
     //printf("BatchRequests: TID:%ld : VIEW: %ld : THD: %ld\n",breq->txn_id, breq->view, get_thd_id());
@@ -70,11 +106,6 @@ RC WorkerThread::process_batch(Message *msg)
 
     // Check if the message is valid.
     validate_msg(breq);
-
-#if VIEW_CHANGES
-    // Store the batch as it could be needed during view changes.
-    store_batch_msg(breq);
-#endif
 
     // Allocate transaction managers for all the transactions in the batch.
     set_txn_man_fields(breq, 0);
@@ -188,10 +219,22 @@ RC WorkerThread::process_pbft_prep_msg(Message *msg)
     //fflush(stdout);
 
     // Start the counter for prepare phase.
-    if (txn_man->prep_rsp_cnt == g_node_cnt - 1)
+    if (txn_man->prep_rsp_cnt == g_thread_cnt - 1)
     {
         txn_man->txn_stats.time_start_prepare = get_sys_clock();
     }
+
+    //增加transfer阶段的msg消息：
+    if (msg->escrow1.targetId == get_node_id()) {
+        if (msg->escrow1.size) {
+            msg->voter = 1;
+        }
+    } else if (msg->escrow2.targetId == get_node_id()) {
+        if (msg->escrow2.size) {
+            msg->voter = 1;
+        }
+    }
+
 
     // Check if the incoming message is valid.
     PBFTPrepMessage *pmsg = (PBFTPrepMessage *)msg;
@@ -275,11 +318,20 @@ RC WorkerThread::process_pbft_commit_msg(Message *msg)
 {
     //cout << "PBFTCommitMessage: TID " << msg->txn_id << " FROM: " << msg->return_node_id << "\n";
     //fflush(stdout);
+    if (msg->voter == 1) {
+        ++votes;
+    } 
 
-    if (txn_man->commit_rsp_cnt == g_node_cnt - 1)
+    if (txn_man->commit_rsp_cnt == g_thread_cnt - 1)
     {
         txn_man->txn_stats.time_start_commit = get_sys_clock();
     }
+    //增加判断这个replica是否选择commit
+    if (msg->voter == g_thread_cnt - 1) {
+        this->assets[getLast(get_node_id())] += escrow_num;
+    }
+
+
 
     // Check if message is valid.
     PBFTCommitMessage *pcmsg = (PBFTCommitMessage *)msg;
